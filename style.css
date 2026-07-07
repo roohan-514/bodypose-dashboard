@@ -1,0 +1,201 @@
+/* ─── RESET & BASE ─── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; background:#0a0a0f; color:#c0d0e0; font-family:'Segoe UI','Inter',sans-serif; }
+
+/* ─── HEADER ─── */
+header {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 20px;
+  background:rgba(10,10,20,0.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(0,200,255,0.15);
+}
+.header-left { display:flex; align-items:center; gap:14px; }
+.logo { font-size:20px; font-weight:700; color:#00d4ff; letter-spacing:1px; }
+.subtitle { font-size:12px; color:#6a7a8a; letter-spacing:0.5px; }
+.header-right { display:flex; align-items:center; gap:12px; }
+.badge {
+  padding:4px 12px; border-radius:6px; font-size:12px; font-weight:600;
+  background:rgba(0,200,255,0.12); border:1px solid rgba(0,200,255,0.2);
+}
+#btnSettings {
+  background:none; border:1px solid rgba(0,200,255,0.25);
+  color:#00d4ff; font-size:18px; width:34px; height:34px; border-radius:6px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:0.2s;
+}
+#btnSettings:hover { background:rgba(0,200,255,0.15); }
+
+/* ─── MAIN / VIEWPORT ─── */
+main {
+  position:fixed; inset:0; z-index:1;
+}
+#viewport {
+  width:100%; height:100%; position:relative;
+}
+#viewport canvas { display:block; width:100% !important; height:100% !important; }
+
+/* Loading */
+#loadingOverlay {
+  position:absolute; inset:0; z-index:50;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(10,10,20,0.92);
+  gap:16px; font-size:14px; color:#6a7a8a;
+}
+.spinner {
+  width:40px; height:40px;
+  border:3px solid rgba(0,200,255,0.15);
+  border-top-color:#00d4ff;
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ─── VITALS OVERLAY ─── */
+#vitals {
+  position:fixed; top:70px; right:16px; z-index:10;
+  display:flex; flex-direction:column; gap:8px;
+  min-width:170px;
+}
+.vital-card {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px;
+  background:rgba(10,10,20,0.75);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(0,200,255,0.12);
+  border-radius:8px;
+}
+.vital-icon { font-size:18px; width:28px; text-align:center; color:#00d4ff; }
+.vital-label { font-size:10px; color:#6a7a8a; text-transform:uppercase; letter-spacing:0.5px; }
+.vital-value { font-size:16px; font-weight:700; color:#f0f8ff; }
+#statusText { color:#00d4ff; }
+#statusText.present { color:#00ff88; }
+#statusText.fall { color:#ff3344; }
+
+/* ─── FALL ALERT ─── */
+#fallAlert {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:20;
+  padding:20px 40px;
+  background:rgba(255,20,40,0.18);
+  border:2px solid #ff3344;
+  border-radius:12px;
+  font-size:28px; font-weight:800; color:#ff3344;
+  letter-spacing:2px;
+  backdrop-filter:blur(10px);
+  animation:pulse 1.2s ease-in-out infinite;
+  pointer-events:none;
+}
+#fallAlert.hidden { display:none; }
+@keyframes pulse {
+  0%,100% { opacity:0.7; transform:translate(-50%,-50%) scale(1); }
+  50% { opacity:1; transform:translate(-50%,-50%) scale(1.04); }
+}
+
+/* ─── TOOLBAR ─── */
+#toolbar {
+  position:fixed; bottom:0; left:0; right:0; z-index:30;
+  display:flex; flex-direction:column;
+  background:rgba(10,10,20,0.80);
+  backdrop-filter:blur(10px);
+  border-top:1px solid rgba(0,200,255,0.12);
+}
+.toolbar-scroll {
+  display:flex; gap:6px; overflow-x:auto;
+  padding:10px 16px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(0,200,255,0.2) transparent;
+}
+.toolbar-scroll::-webkit-scrollbar { height:3px; }
+.toolbar-scroll::-webkit-scrollbar-thumb { background:rgba(0,200,255,0.3); border-radius:3px; }
+.scenario-btn {
+  flex-shrink:0;
+  padding:6px 16px; border-radius:6px;
+  font-size:12px; font-weight:600;
+  background:rgba(0,200,255,0.06);
+  border:1px solid rgba(0,200,255,0.15);
+  color:#7a8a9a;
+  cursor:pointer;
+  transition:0.2s;
+  white-space:nowrap;
+}
+.scenario-btn:hover { background:rgba(0,200,255,0.12); color:#c0d0e0; }
+.scenario-btn.active {
+  background:rgba(0,200,255,0.20);
+  border-color:#00d4ff;
+  color:#00d4ff;
+}
+.toolbar-status {
+  padding:4px 16px 8px;
+  font-size:11px; color:#4a5a6a; letter-spacing:0.5px;
+}
+
+/* ─── SETTINGS PANEL ─── */
+#settingsOverlay {
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);
+}
+#settingsOverlay.hidden { display:none; }
+.settings-panel {
+  width:420px; max-height:80vh; overflow-y:auto;
+  background:rgba(14,14,24,0.96);
+  border:1px solid rgba(0,200,255,0.15);
+  border-radius:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.settings-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 20px;
+  border-bottom:1px solid rgba(0,200,255,0.1);
+}
+.settings-header h2 { font-size:16px; font-weight:600; color:#00d4ff; }
+#closeSettings {
+  background:none; border:none; color:#6a7a8a; font-size:24px;
+  cursor:pointer; line-height:1;
+}
+#closeSettings:hover { color:#f0f8ff; }
+.settings-body {
+  padding:16px 20px 20px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.setting-group h3 {
+  font-size:11px; text-transform:uppercase; letter-spacing:1px;
+  color:#4a5a6a; margin-bottom:8px;
+}
+.setting-group label {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 0;
+  font-size:13px; color:#8a9aaa;
+}
+.setting-group input[type="range"] {
+  width:140px; accent-color:#00d4ff;
+  background:transparent;
+}
+.setting-group input[type="checkbox"] { accent-color:#00d4ff; }
+.setting-group select {
+  width:100%; padding:6px 8px;
+  background:rgba(0,200,255,0.06);
+  border:1px solid rgba(0,200,255,0.15);
+  border-radius:6px;
+  color:#c0d0e0; font-size:13px;
+}
+.btn-secondary {
+  padding:8px 16px; border-radius:6px;
+  background:rgba(0,200,255,0.08);
+  border:1px solid rgba(0,200,255,0.15);
+  color:#8a9aaa; font-size:12px; cursor:pointer;
+  transition:0.2s;
+}
+.btn-secondary:hover { background:rgba(0,200,255,0.15); color:#c0d0e0; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width:768px) {
+  #vitals { right:8px; min-width:140px; }
+  .vital-card { padding:8px 10px; }
+  .vital-value { font-size:14px; }
+  .settings-panel { width:90vw; }
+  .subtitle { display:none; }
+}

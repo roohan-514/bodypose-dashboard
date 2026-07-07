@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BodyPose Observatory — Camera People Counter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─── HEADER ─── -->
+  <header>
+    <div class="header-left">
+      <span class="logo">&#960; BodyPose</span>
+      <span class="subtitle">Camera Pose Sensing Observatory</span>
+    </div>
+    <div class="header-right">
+      <span class="badge" id="fpsDisplay">0 FPS</span>
+      <span class="badge" id="peopleCount">&#x1f465; 0</span>
+      <button id="btnSettings" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- ─── MAIN ─── -->
+  <main>
+    <div id="viewport">
+      <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Initializing camera &amp; pose model…</p>
+      </div>
+    </div>
+
+    <!-- Vitals overlay -->
+    <div id="vitals">
+      <div class="vital-card">
+        <span class="vital-icon">&#9829;</span>
+        <div>
+          <div class="vital-label">Heart Rate</div>
+          <div class="vital-value" id="heartRate">-- BPM</div>
+        </div>
+      </div>
+      <div class="vital-card">
+        <span class="vital-icon">&#9788;</span>
+        <div>
+          <div class="vital-label">Respiration</div>
+          <div class="vital-value" id="respiration">-- RPM</div>
+        </div>
+      </div>
+      <div class="vital-card">
+        <span class="vital-icon">&#9878;</span>
+        <div>
+          <div class="vital-label">Confidence</div>
+          <div class="vital-value" id="confidence">--%</div>
+        </div>
+      </div>
+      <div class="vital-card">
+        <span class="vital-icon">&#9888;</span>
+        <div>
+          <div class="vital-label">Status</div>
+          <div class="vital-value" id="statusText">ABSENT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fall alert -->
+    <div id="fallAlert" class="hidden">&#9888; FALL DETECTED</div>
+
+    <!-- Bottom toolbar -->
+    <div id="toolbar">
+      <div class="toolbar-scroll">
+        <button class="scenario-btn active" data-mode="idle">Auto-Cycle</button>
+        <button class="scenario-btn" data-mode="empty">Empty Room</button>
+        <button class="scenario-btn" data-mode="vitals">Vital Signs</button>
+        <button class="scenario-btn" data-mode="multiperson">Multi-Person</button>
+        <button class="scenario-btn" data-mode="falldetect">Fall Detect</button>
+        <button class="scenario-btn" data-mode="sleep">Sleep Monitor</button>
+        <button class="scenario-btn" data-mode="intrusion">Intrusion</button>
+        <button class="scenario-btn" data-mode="gesture">Gesture Ctrl</button>
+        <button class="scenario-btn" data-mode="crowd">Crowd (4 ppl)</button>
+        <button class="scenario-btn" data-mode="fitness">Fitness</button>
+        <button class="scenario-btn" data-mode="security">Security Patrol</button>
+      </div>
+      <div class="toolbar-status">
+        <span id="modeLabel">Scenario: Auto-Cycle</span>
+      </div>
+    </div>
+
+    <!-- Settings panel -->
+    <div id="settingsOverlay" class="hidden">
+      <div class="settings-panel">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button id="closeSettings">&times;</button>
+        </div>
+        <div class="settings-body">
+
+          <div class="setting-group">
+            <h3>Rendering</h3>
+            <label>Wireframe <input type="checkbox" id="chkWireframe" /></label>
+            <label>Show Grid <input type="checkbox" id="chkGrid" checked /></label>
+            <label>Show Room <input type="checkbox" id="chkRoom" checked /></label>
+            <label>Show Data <input type="checkbox" id="chkData" checked /></label>
+          </div>
+
+          <div class="setting-group">
+            <h3>Visual</h3>
+            <label>Bloom <input type="range" id="bloomStrength" min="0" max="2" step="0.05" value="0.8" /></label>
+            <label>Exposure <input type="range" id="exposure" min="0.2" max="2" step="0.05" value="0.9" /></label>
+            <label>Bone Thickness <input type="range" id="boneThickness" min="1" max="8" step="0.5" value="3" /></label>
+            <label>Glow Intensity <input type="range" id="glowIntensity" min="0" max="2" step="0.05" value="0.6" /></label>
+            <label>FOV <input type="range" id="fov" min="20" max="120" step="1" value="50" /></label>
+            <label>Orbit Speed <input type="range" id="orbitSpeed" min="0.05" max="1" step="0.05" value="0.3" /></label>
+          </div>
+
+          <div class="setting-group">
+            <h3>Style Preset</h3>
+            <select id="stylePreset">
+              <option value="default">Foundation (Default)</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="minimal">Minimal / Clean</option>
+              <option value="neon">Neon Glow</option>
+              <option value="tactical">Tactical / Military</option>
+              <option value="medical">Medical Monitor</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <h3>Data Source</h3>
+            <select id="dataSource">
+              <option value="camera">Camera (Live)</option>
+              <option value="demo">Demo Generator</option>
+            </select>
+          </div>
+
+          <button id="resetCamera" class="btn-secondary">Reset Camera</button>
+          <button id="resetDefaults" class="btn-secondary">Reset to Defaults</button>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Hidden webcam -->
+  <video id="webcam" playsinline style="display:none"></video>
+
+  <!-- ─── DEPENDENCIES ─── -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_bundle.js">
+  </script>
+
+  <script src="app.js"></script>
+</body>
+</html>
