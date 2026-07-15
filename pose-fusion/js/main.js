@@ -52,15 +52,7 @@ const EDGES = [
   [24,26],[26,28],[28,30],[30,32]
 ];
 
-const EDGE_COLORS = {
-  0:0x00e5ff,1:0x00e5ff,2:0x00e5ff,3:0x00e5ff,4:0x00e5ff,5:0x00e5ff,6:0x00e5ff,7:0x00e5ff,8:0x00e5ff,
-  9:0xff88cc,10:0xff88cc,
-  11:0x00ff88,12:0x00ff88,13:0x00ff88,14:0x00ff88,15:0x00ff88,16:0x00ff88,
-  17:0xffb020,18:0xffb020,19:0xffb020,20:0xffb020,21:0xffb020,22:0xffb020,
-  23:0x00e5ff,24:0x00e5ff,23:0x00e5ff,24:0x00e5ff,
-  25:0x00ff88,26:0x00ff88,27:0x00ff88,28:0x00ff88,29:0x00ff88,30:0x00ff88,
-  31:0xffb020,32:0xffb020
-};
+
 
 let skeletonCtx = null;
 
@@ -101,15 +93,15 @@ function drawSkeleton(landmarks) {
     });
 
     // Joints
+    ctx.shadowBlur = 8;
     pose.forEach((p, i) => {
       if ((p.visibility||1) < 0.3) return;
       const s = scale(p);
       ctx.beginPath();
       ctx.arc(s.x, s.y, 4, 0, Math.PI*2);
       ctx.fillStyle = i < 11 ? '#00e5ff' : i < 23 ? '#00ff88' : '#ffb020';
-      ctx.fill();
-      ctx.shadowBlur = 8;
       ctx.shadowColor = ctx.fillStyle;
+      ctx.fill();
     });
     ctx.shadowBlur = 0;
   });
