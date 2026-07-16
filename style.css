@@ -45,6 +45,19 @@ html,body{height:100%;overflow:hidden;background:#08080e;color:#c0d0e0;font-fami
 }
 #settings-btn:hover{background:rgba(0,200,255,.18)}
 
+.ws-status{font-size:10px;padding:2px 6px;border-radius:4px;color:#4a7a8a;white-space:nowrap}
+.ws-status.online{color:#00ff88}
+.ws-status.offline{color:#ff5050}
+
+.record-btn{
+  background:rgba(200,50,50,.12);border:1px solid rgba(255,50,50,.25);
+  color:#ff5050;border-radius:5px;padding:3px 10px;font-size:10px;font-weight:700;
+  cursor:pointer;letter-spacing:.5px;white-space:nowrap;transition:.2s
+}
+.record-btn:hover{background:rgba(255,50,50,.2)}
+.record-btn.recording{background:rgba(255,20,40,.2);border-color:#ff3344;animation:pulse-rec 1.2s infinite}
+@keyframes pulse-rec{0%,100%{opacity:1}50%{opacity:.5}}
+
 /* Panels */
 .data-panel{
   position:absolute;top:70px;

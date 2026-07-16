@@ -76,6 +76,79 @@ const S = {
   wireColor:'#00d4ff', jointColor:'#00ffaa'
 };
 
+/* ─── WEBSOCKET / BACKEND ───────────────────────────────── */
+let ws = null;
+let wsReconnectTimer = null;
+const WS_URL = `ws://${location.host}`;
+let isRecording = false;
+let recFrameCount = 0;
+
+function connectWS() {
+  try {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => {
+      const el = document.getElementById('ws-indicator');
+      if (el) { el.textContent = '\u25CF Online'; el.className = 'ws-status online'; }
+      console.log('WS connected');
+    };
+    ws.onclose = () => {
+      const el = document.getElementById('ws-indicator');
+      if (el) { el.textContent = '\u25CF Offline'; el.className = 'ws-status offline'; }
+      wsReconnectTimer = setTimeout(connectWS, 3000);
+    };
+    ws.onerror = () => { if (ws) ws.close(); };
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'recording_started') { isRecording = true; recFrameCount = 0; updateRecBtn(); }
+        if (msg.type === 'recording_stopped') { isRecording = false; updateRecBtn(); }
+      } catch {}
+    };
+  } catch {}
+}
+
+function sendPoseToBackend() {
+  if (!ws || ws.readyState !== 1) return;
+  const landmarks = detectedLandmarks.map(pose =>
+    pose.map(l => ({ x: l.x, y: l.y, z: l.z, visibility: l.visibility }))
+  );
+  ws.send(JSON.stringify({
+    type: 'pose_data',
+    peopleCount: S.peopleCount,
+    landmarks,
+    vitals: { hr: Math.round(S.hr), br: Math.round(S.br), conf: Math.round(S.conf) },
+    scenario: S.scenario,
+    fallDetected: S.fallDetected,
+    motion: S.motion
+  }));
+  if (isRecording) recFrameCount++;
+}
+
+function toggleRecording() {
+  if (!ws || ws.readyState !== 1) { console.warn('Backend offline'); return; }
+  if (isRecording) {
+    ws.send(JSON.stringify({ type: 'stop_recording' }));
+  } else {
+    ws.send(JSON.stringify({
+      type: 'start_recording',
+      name: `Recording ${new Date().toLocaleString()}`,
+      metadata: { scenario: S.scenario, demoMode: S.demoMode }
+    }));
+  }
+}
+
+function updateRecBtn() {
+  const btn = document.getElementById('record-btn');
+  if (!btn) return;
+  if (isRecording) {
+    btn.textContent = '\u25A0 Stop';
+    btn.className = 'record-btn recording';
+  } else {
+    btn.textContent = '\u25CF Record';
+    btn.className = 'record-btn';
+  }
+}
+
 /* ─── DOM ────────────────────────────────────────────────── */
 const $ = s => document.querySelector(s);
 const D = {
@@ -634,6 +707,9 @@ function bindEvents(){
     el.addEventListener('input',applySettings);el.addEventListener('change',applySettings);
   });
 
+  const recBtn = document.getElementById('record-btn');
+  if (recBtn) recBtn.addEventListener('click', toggleRecording);
+
   D.scSelect.addEventListener('change',()=>setScenario(D.scSelect.value));
   document.getElementById('opt-data-source').addEventListener('change',()=>{S.demoMode=document.getElementById('opt-data-source').value==='demo';});
   document.getElementById('btn-reset-camera').addEventListener('click',resetCamera);
@@ -666,6 +742,7 @@ function animate(time){
   detectFall();
   updateVitals();
   updateUI();
+  if ((S.frames % 3) === 0) sendPoseToBackend();
 
   if(S.scenario==='auto'){
     S.cycleTimer+=16;
@@ -687,6 +764,7 @@ function animate(time){
 
 /* ─── INIT ──────────────────────────────────────────────── */
 async function init(){
+  connectWS();
   bindEvents();setScenario('auto');
   const camOk=await initCam(),poseOk=await initPose();
   if(!camOk||!poseOk){S.demoMode=true;document.getElementById('opt-data-source').value='demo';D.sourceLabel.textContent='DEMO';document.querySelector('.dot').className='dot dot--demo';}

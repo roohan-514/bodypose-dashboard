@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BodyPose — Analytics Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #06080e; overflow-y: auto; padding: 0; }
+    .analytics-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .analytics-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid rgba(0,200,255,.1);
+    }
+    .analytics-header h1 { font-size: 24px; color: #00e5ff; font-weight: 700; }
+    .analytics-header h1 span { color: #4a6a7a; }
+    .analytics-header a {
+      color: #00e5ff; text-decoration: none; font-size: 13px; font-weight: 600;
+      padding: 8px 18px; border: 1px solid rgba(0,229,255,.2); border-radius: 6px;
+      background: rgba(0,229,255,.06);
+    }
+    .analytics-header a:hover { background: rgba(0,229,255,.14); }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: rgba(10,12,20,.85); border: 1px solid rgba(0,200,255,.12);
+      border-radius: 10px; padding: 18px 20px;
+    }
+    .stat-card .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #4a7a8a; margin-bottom: 6px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #f0f8ff; }
+    .stat-card .sub { font-size: 12px; color: #4a6a7a; margin-top: 4px; }
+
+    .chart-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;
+    }
+    .chart-card {
+      background: rgba(10,12,20,.85); border: 1px solid rgba(0,200,255,.12);
+      border-radius: 10px; padding: 16px;
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-card .title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #4a7a8a; margin-bottom: 12px; font-weight: 600; }
+    .chart-card canvas { width: 100%; height: 200px; border-radius: 6px; background: rgba(0,0,0,.2); }
+
+    .recordings-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .recordings-table th {
+      text-align: left; padding: 10px 12px; color: #4a7a8a; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid rgba(0,200,255,.08); font-weight: 600;
+    }
+    .recordings-table td {
+      padding: 10px 12px; border-bottom: 1px solid rgba(0,200,255,.05); color: #a0b0c0;
+    }
+    .recordings-table tr:hover td { background: rgba(0,200,255,.03); }
+    .recordings-table .btn-sm {
+      padding: 4px 10px; border-radius: 4px; background: rgba(0,200,255,.08);
+      border: 1px solid rgba(0,200,255,.15); color: #7a9aaa; font-size: 10px;
+      cursor: pointer; text-decoration: none; margin-right: 4px;
+    }
+    .recordings-table .btn-sm:hover { background: rgba(0,200,255,.16); color: #c0d0e0; }
+    .recordings-table .btn-danger { border-color: rgba(255,50,50,.2); color: #ff5050; }
+    .recordings-table .btn-danger:hover { background: rgba(255,50,50,.12); }
+
+    .live-indicator { display: inline-flex; align-items: center; gap: 6px; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; display: inline-block; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    @media(max-width:800px) { .chart-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="analytics-wrap">
+    <div class="analytics-header">
+      <h1><span>&#960;</span> BodyPose Analytics</h1>
+      <div>
+        <span class="live-indicator"><span class="live-dot"></span> <span id="status-text" style="color:#4a7a8a;font-size:12px">Connecting...</span></span>
+        <a href="index.html">&larr; Dashboard</a>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">Total Recordings</div><div class="value" id="stat-recordings">--</div><div class="sub">Saved sessions</div></div>
+      <div class="stat-card"><div class="label">Total Frames</div><div class="value" id="stat-frames">--</div><div class="sub">Pose data points</div></div>
+      <div class="stat-card"><div class="label">Total Duration</div><div class="value" id="stat-duration">--</div><div class="sub">Recording time</div></div>
+      <div class="stat-card"><div class="label">Live Clients</div><div class="value" id="stat-clients">--</div><div class="sub">Connected viewers</div></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card"><div class="title">People Count Over Time</div><canvas id="chart-people"></canvas></div>
+      <div class="chart-card"><div class="title">Heart Rate & Respiration</div><canvas id="chart-vitals"></canvas></div>
+      <div class="chart-card full"><div class="title">Confidence & Motion</div><canvas id="chart-confidence"></canvas></div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="title" style="margin-bottom:0">Recording Sessions</div>
+        <button id="refresh-btn" class="btn-sm" style="font-size:11px;padding:6px 14px">&#8635; Refresh</button>
+      </div>
+      <div id="recordings-list">
+        <div style="color:#4a6a7a;font-size:13px;padding:20px;text-align:center">Loading recordings...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+    const WS_URL = `${API.replace(/^http/, 'ws')}`;
+    let ws = null;
+    let recordings = [];
+    let liveData = [];
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    function connectWS() {
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => { $('#status-text').textContent = 'Connected'; };
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'pose_frame') {
+            liveData.push(msg.data);
+            if (liveData.length > 500) liveData.shift();
+            updateLiveCharts();
+          }
+          if (msg.type === 'live_status') {
+            $('#stat-clients').textContent = msg.clientCount;
+          }
+        } catch {}
+      };
+      ws.onclose = () => {
+        $('#status-text').textContent = 'Disconnected';
+        setTimeout(connectWS, 3000);
+      };
+    }
+
+    async function loadRecordings() {
+      try {
+        const r = await fetch(`${API}/api/recordings`);
+        const data = await r.json();
+        recordings = data.recordings || [];
+        updateStats();
+        renderRecordings();
+      } catch {
+        $('#recordings-list').innerHTML = '<div style="color:#ff5050;padding:20px;text-align:center">Failed to load recordings — server may be offline</div>';
+      }
+    }
+
+    function updateStats() {
+      const totalFrames = recordings.reduce((s, r) => s + (r.frameCount || 0), 0);
+      const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
+      $('#stat-recordings').textContent = recordings.length;
+      $('#stat-frames').textContent = totalFrames.toLocaleString();
+      $('#stat-duration').textContent = formatDuration(totalDuration);
+    }
+
+    function formatDuration(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const h = Math.floor(m / 60);
+      if (h > 0) return `${h}h ${m%60}m`;
+      if (m > 0) return `${m}m ${s%60}s`;
+      return `${s}s`;
+    }
+
+    function formatDate(ts) {
+      return new Date(ts).toLocaleString();
+    }
+
+    function renderRecordings() {
+      if (!recordings.length) {
+        $('#recordings-list').innerHTML = '<div style="color:#4a6a7a;padding:20px;text-align:center">No recordings yet — start recording from the main dashboard</div>';
+        return;
+      }
+      let html = `<table class="recordings-table">
+        <thead><tr><th>Name</th><th>Date</th><th>Duration</th><th>Frames</th><th>Actions</th></tr></thead><tbody>`;
+      recordings.forEach(r => {
+        html += `<tr>
+          <td style="color:#c0d0e0;font-weight:500">${r.name}</td>
+          <td>${formatDate(r.startedAt)}</td>
+          <td>${formatDuration(r.duration)}</td>
+          <td>${(r.frameCount||0).toLocaleString()}</td>
+          <td>
+            <button class="btn-sm" onclick="viewRecording('${r.id}')">&#9654; View</button>
+            <a class="btn-sm" href="${API}/api/export/${r.id}/json" download>JSON</a>
+            <a class="btn-sm" href="${API}/api/export/${r.id}/csv" download>CSV</a>
+            <button class="btn-sm btn-danger" onclick="deleteRecording('${r.id}')">&#10005; Delete</button>
+          </td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      $('#recordings-list').innerHTML = html;
+    }
+
+    async function deleteRecording(id) {
+      if (!confirm('Delete this recording?')) return;
+      await fetch(`${API}/api/recordings/${id}`, { method: 'DELETE' });
+      loadRecordings();
+    }
+
+    function viewRecording(id) {
+      window.open(`${API}/analytics.html?rec=${id}`, '_blank');
+    }
+
+    let peopleChart, vitalsChart, confChart;
+
+    function updateLiveCharts() {
+      if (!liveData.length) return;
+      const data = liveData.slice(-100);
+      const labels = data.map((_, i) => i);
+
+      if (!peopleChart) {
+        const ctx = document.getElementById('chart-people').getContext('2d');
+        peopleChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'People',
+              data: data.map(d => d.peopleCount),
+              borderColor: '#00e5ff',
+              backgroundColor: 'rgba(0,229,255,0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0
+            }]
+          },
+          options: chartOpts('#00e5ff')
+        });
+      } else {
+        peopleChart.data.labels = labels;
+        peopleChart.data.datasets[0].data = data.map(d => d.peopleCount);
+        peopleChart.update('none');
+      }
+
+      if (!vitalsChart) {
+        const ctx = document.getElementById('chart-vitals').getContext('2d');
+        vitalsChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Heart Rate (BPM)', data: data.map(d => d.vitals && d.vitals.hr), borderColor: '#ff4060', backgroundColor: 'rgba(255,64,96,0.1)', fill: true, tension: 0.4, pointRadius: 0, yAxisID: 'y' },
+              { label: 'Respiration (RPM)', data: data.map(d => d.vitals && d.vitals.br), borderColor: '#00d878', backgroundColor: 'rgba(0,216,120,0.1)', fill: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' }
+            ]
+          },
+          options: {
+            ...chartOpts('#ff4060'),
+            scales: {
+              x: { display: true, grid: { color: 'rgba(0,200,255,0.04)' }, ticks: { color: '#4a6a7a', font: { size: 10 } } },
+              y: { type: 'linear', position: 'left', min: 40, max: 120, grid: { color: 'rgba(0,200,255,0.04)' }, ticks: { color: '#ff4060', font: { size: 10 } } },
+              y1: { type: 'linear', position: 'right', min: 0, max: 40, grid: { display: false }, ticks: { color: '#00d878', font: { size: 10 } } }
+            }
+          }
+        });
+      } else {
+        vitalsChart.data.labels = labels;
+        vitalsChart.data.datasets[0].data = data.map(d => d.vitals && d.vitals.hr);
+        vitalsChart.data.datasets[1].data = data.map(d => d.vitals && d.vitals.br);
+        vitalsChart.update('none');
+      }
+
+      if (!confChart) {
+        const ctx = document.getElementById('chart-confidence').getContext('2d');
+        confChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Confidence %', data: data.map(d => d.vitals && d.vitals.conf), borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.08)', fill: true, tension: 0.4, pointRadius: 0 },
+              { label: 'Motion', data: data.map(d => d.motion), borderColor: '#ffb020', backgroundColor: 'rgba(255,176,32,0.08)', fill: true, tension: 0.4, pointRadius: 0 }
+            ]
+          },
+          options: chartOpts('#00ff88')
+        });
+      } else {
+        confChart.data.labels = labels;
+        confChart.data.datasets[0].data = data.map(d => d.vitals && d.vitals.conf);
+        confChart.data.datasets[1].data = data.map(d => d.motion);
+        confChart.update('none');
+      }
+    }
+
+    function chartOpts(color) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        plugins: { legend: { labels: { color: '#4a7a8a', font: { size: 10 }, boxWidth: 12 } } },
+        scales: {
+          x: { display: true, grid: { color: 'rgba(0,200,255,0.04)' }, ticks: { color: '#4a6a7a', font: { size: 10 } } },
+          y: { display: true, grid: { color: 'rgba(0,200,255,0.04)' }, ticks: { color: '#4a6a7a', font: { size: 10 } } }
+        }
+      };
+    }
+
+    $('#refresh-btn').addEventListener('click', loadRecordings);
+    connectWS();
+    loadRecordings();
+    setInterval(loadRecordings, 10000);
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</body>
+</html>

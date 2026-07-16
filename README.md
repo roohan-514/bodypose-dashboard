@@ -1,31 +1,45 @@
-# π BodyPose Observatory
+# π BodyPose Observatory v2
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-amd64%20%2B%20arm64-blue.svg)](Dockerfile)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-f7df1e.svg)](app.js)
 [![Three.js](https://img.shields.io/badge/Three.js-r160-049ef4.svg)](https://threejs.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose%20Landmarker-00c853.svg)](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker)
+[![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-00e5ff.svg)](server.js)
+[![REST API](https://img.shields.io/badge/API-RESTful-00ff88.svg)](server.js)
 
-**Real-time 3D human pose estimation and visualization dashboard** — powered by MediaPipe Pose Landmarker and Three.js. Detects up to 6 people via webcam with a sci-fi observatory 3D scene, 13 simulation scenarios, vital signs monitoring, and fall detection.
+**Real-time 3D human pose estimation and visualization dashboard** — powered by MediaPipe Pose Landmarker and Three.js. Features a full-stack Node.js backend with WebSocket streaming, REST API, pose recording/playback, JSON/CSV export, and live analytics.
 
-> Live demo: Open `index.html` in a browser with webcam access (or use the built-in demo mode).
+> Live demo: Run `node server.js` and open `http://localhost:3000` in a browser with webcam access (or use the built-in demo mode).
 
 ---
 
 ## Quick Start
 
 ```bash
-# Option 1: Python
-python -m http.server 8080
+# Install dependencies
+npm install
 
-# Option 2: Docker
+# Start the full-stack server (WebSocket + REST API + static files)
+node server.js
+
+# Or use Docker
 docker compose up -d
 
-# Option 3: Node.js
-npx serve .
-
-# Open http://localhost:8080
+# Open http://localhost:3000
 ```
+
+## New in v2
+
+| Feature | Description |
+|---|---|
+| **Node.js Backend** | Express server with WebSocket real-time streaming |
+| **REST API** | Endpoints for pose data, recordings, export, and status |
+| **Pose Recording** | Record and save pose sessions to disk |
+| **JSON / CSV Export** | Download recorded data for analysis |
+| **Analytics Dashboard** | Historical charts for people count, vitals, confidence |
+| **WebSocket Streaming** | Live pose data broadcast to all connected clients |
+| **Live Charts** | Real-time Chart.js visualizations
 
 ---
 
@@ -68,16 +82,18 @@ npx serve .
 
 ```
 bodypose-dashboard/
+├── server.js               # Node.js backend (Express + WebSocket + API)
+├── package.json            # Backend dependencies
+├── recordings/             # Saved recording sessions
 ├── index.html              # Main observatory dashboard
-├── app.js                  # 3D scene, pose detection, effects, UI
+├── app.js                  # 3D scene, pose detection, effects, UI, WS client
 ├── style.css               # Dashboard styles
+├── analytics.html          # Analytics dashboard with live charts
 ├── pose-fusion/            # Dual-modal fusion dashboard
 │   ├── index.html
 │   ├── js/main.js
 │   └── css/style.css
 ├── docs/                   # Documentation
-│   ├── index.md
-│   └── deployment.md
 ├── assets/                 # Project assets
 ├── Dockerfile              # Docker deployment
 ├── docker-compose.yml      # Docker compose
