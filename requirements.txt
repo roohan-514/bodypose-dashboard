@@ -1,0 +1,6 @@
+# Python requirements for serving and development
+# For local development server:
+#   python -m http.server 8080
+#
+# No additional Python dependencies required for the main app.
+# This file is for future Python-based tooling.

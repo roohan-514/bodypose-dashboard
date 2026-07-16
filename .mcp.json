@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "bodypose-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/claude-code", "--stdio"]
+    }
+  }
+}
