@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BodyPose Observatory — Camera People Counter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+
+  <!-- Brand -->
+  <div id="brand">
+    <div id="brand-logo"><span class="pi">&pi;</span> BodyPose</div>
+    <div id="brand-tagline">Camera Pose Sensing Observatory</div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="status-bar">
+    <div id="data-source-badge">
+      <span class="dot dot--demo"></span>
+      <span id="source-label">DEMO</span>
+    </div>
+    <div id="scenario-area">
+      <span id="autoplay-icon" title="Auto-cycling">&#9654;</span>
+      <select id="scenario-select">
+        <option value="auto">Auto-Cycle</option>
+        <option value="empty_room">Empty Room</option>
+        <option value="single_breathing">Vital Signs</option>
+        <option value="two_walking">Multi-Person</option>
+        <option value="fall_event">Fall Detect</option>
+        <option value="sleep_monitoring">Sleep Monitor</option>
+        <option value="intrusion_detect">Intrusion</option>
+        <option value="gesture_control">Gesture Ctrl</option>
+        <option value="crowd_occupancy">Crowd (4 ppl)</option>
+        <option value="search_rescue">Search Rescue</option>
+        <option value="elderly_care">Elderly Care</option>
+        <option value="fitness_tracking">Fitness</option>
+        <option value="security_patrol">Security Patrol</option>
+      </select>
+    </div>
+    <div id="scenario-description"></div>
+    <div id="fps-counter">0 FPS</div>
+    <span id="ws-indicator" class="ws-status" title="Backend Connection">&#9679; Offline</span>
+    <button id="record-btn" class="record-btn" title="Record Pose Data">&#9679; Record</button>
+    <a href="analytics.html" id="fusion-link" title="Analytics Dashboard">Analytics</a>
+    <a href="pose-fusion/" id="fusion-link" title="Dual-Modal Pose Fusion">Pose Fusion</a>
+    <button id="settings-btn" title="Settings">&#9881;</button>
+  </div>
+
+  <!-- Vitals panel (left) -->
+  <div id="panel-vitals" class="data-panel">
+    <div class="panel-header">Vital Signs</div>
+    <div class="vital-row">
+      <div class="vital-icon">&#9825;</div>
+      <div class="vital-data">
+        <div class="vital-label">Heart Rate</div>
+        <div class="vital-value"><span id="hr-val">--</span> <span class="vital-unit">BPM</span></div>
+        <div class="vital-bar"><div id="hr-bar" class="bar-fill bar-hr"></div></div>
+      </div>
+    </div>
+    <div class="vital-row">
+      <div class="vital-icon">&#9788;</div>
+      <div class="vital-data">
+        <div class="vital-label">Respiration</div>
+        <div class="vital-value"><span id="br-val">--</span> <span class="vital-unit">RPM</span></div>
+        <div class="vital-bar"><div id="br-bar" class="bar-fill bar-br"></div></div>
+      </div>
+    </div>
+    <div class="vital-row">
+      <div class="vital-icon">&#9878;</div>
+      <div class="vital-data">
+        <div class="vital-label">Confidence</div>
+        <div class="vital-value"><span id="conf-val">--</span><span class="vital-unit">%</span></div>
+        <div class="vital-bar"><div id="conf-bar" class="bar-fill bar-conf"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal panel (right) -->
+  <div id="panel-signal" class="data-panel">
+    <div class="panel-header">Camera Signal</div>
+    <div class="signal-row">
+      <span class="sig-label">People</span>
+      <span class="sig-val" id="people-val">0</span>
+      <span id="people-dots" class="people-dots"></span>
+    </div>
+    <div class="signal-row">
+      <span class="sig-label">Motion</span>
+      <span class="sig-val" id="motion-val">--</span>
+    </div>
+    <div class="signal-row">
+      <span class="sig-label">Light</span>
+      <span class="sig-val" id="light-val">--</span>
+    </div>
+    <canvas id="sparkline" width="200" height="48"></canvas>
+
+    <div class="panel-header" style="margin-top:12px">Presence</div>
+    <div id="presence-indicator" class="presence--absent">
+      <span id="presence-label">ABSENT</span>
+    </div>
+    <div id="fall-alert" style="display:none">&#9888; FALL DETECTED</div>
+  </div>
+
+  <!-- Edge modules -->
+  <div id="edge-bar"></div>
+
+  <!-- Capabilities -->
+  <div id="cap-bar">
+    <div class="cap-item"><span class="cap-icon">&#9898;</span><span>Human Pose Estimation</span></div>
+    <div class="cap-div"></div>
+    <div class="cap-item"><span class="cap-icon">&#9829;</span><span>Vital Sign Monitoring</span></div>
+    <div class="cap-div"></div>
+    <div class="cap-item"><span class="cap-icon">&#9784;</span><span>Presence Detection</span></div>
+    <div class="cap-div"></div>
+    <div class="cap-item"><span class="cap-icon">&#128101;</span><span>People Counting</span></div>
+  </div>
+
+  <!-- Key hints -->
+  <div id="key-hints">
+    <span class="key-hint">[A] Orbit</span>
+    <span class="key-hint">[D] Scenario</span>
+    <span class="key-hint">[F] FPS</span>
+    <span class="key-hint">[S] Settings</span>
+    <span class="key-hint">[Space] Pause</span>
+  </div>
+</div>
+
+<!-- Settings overlay -->
+<div id="settings-overlay" style="display:none">
+  <div class="settings-dialog">
+    <div class="settings-header">
+      <span>Settings</span>
+      <button id="settings-close">&times;</button>
+    </div>
+
+    <div class="settings-tabs">
+      <button class="stab active" data-tab="rendering">Rendering</button>
+      <button class="stab" data-tab="appearance">Appearance</button>
+      <button class="stab" data-tab="scene">Scene</button>
+      <button class="stab" data-tab="data">Data</button>
+    </div>
+
+    <!-- Rendering -->
+    <div class="stab-content active" id="tab-rendering">
+      <label class="s-row"><span>Bloom Strength</span><input type="range" id="opt-bloom" min="0" max="3" step="0.05" value="1.0"><span class="rval">1.0</span></label>
+      <label class="s-row"><span>Bloom Radius</span><input type="range" id="opt-bloom-radius" min="0" max="1" step="0.05" value="0.5"><span class="rval">0.5</span></label>
+      <label class="s-row"><span>Bloom Threshold</span><input type="range" id="opt-bloom-thresh" min="0" max="1" step="0.05" value="0.25"><span class="rval">0.25</span></label>
+      <label class="s-row"><span>Exposure</span><input type="range" id="opt-exposure" min="0.2" max="2" step="0.05" value="0.9"><span class="rval">0.9</span></label>
+      <label class="s-row"><span>Vignette</span><input type="range" id="opt-vignette" min="0" max="1" step="0.05" value="0.5"><span class="rval">0.5</span></label>
+      <label class="s-row"><span>Film Grain</span><input type="range" id="opt-grain" min="0" max="0.15" step="0.005" value="0.03"><span class="rval">0.03</span></label>
+      <label class="s-row"><span>Chromatic Aberration</span><input type="range" id="opt-chromatic" min="0" max="0.008" step="0.0005" value="0.0015"><span class="rval">0.0015</span></label>
+    </div>
+
+    <!-- Appearance -->
+    <div class="stab-content" id="tab-appearance">
+      <label class="s-row"><span>Bone Thickness</span><input type="range" id="opt-bone" min="1" max="8" step="0.5" value="3"><span class="rval">3</span></label>
+      <label class="s-row"><span>Joint Size</span><input type="range" id="opt-joint" min="0.02" max="0.12" step="0.005" value="0.05"><span class="rval">0.05</span></label>
+      <label class="s-row"><span>Glow Intensity</span><input type="range" id="opt-glow" min="0" max="2" step="0.05" value="0.6"><span class="rval">0.6</span></label>
+      <label class="s-row"><span>Particle Trail</span><input type="range" id="opt-trail" min="0" max="1" step="0.05" value="0.6"><span class="rval">0.6</span></label>
+      <label class="s-row"><span>Wireframe Color</span><input type="color" id="opt-wire-color" value="#00d4ff"></label>
+      <label class="s-row"><span>Joint Color</span><input type="color" id="opt-joint-color" value="#00ffaa"></label>
+      <label class="s-row"><span>Aura Opacity</span><input type="range" id="opt-aura" min="0" max="0.2" step="0.01" value="0.06"><span class="rval">0.06</span></label>
+    </div>
+
+    <!-- Scene -->
+    <div class="stab-content" id="tab-scene">
+      <label class="s-row"><span>Signal Field</span><input type="range" id="opt-field" min="0" max="1" step="0.05" value="0.5"><span class="rval">0.5</span></label>
+      <label class="s-row"><span>Pulse Waves</span><input type="range" id="opt-waves" min="0" max="1" step="0.05" value="0.6"><span class="rval">0.6</span></label>
+      <label class="s-row"><span>Room Brightness</span><input type="range" id="opt-ambient" min="0" max="1" step="0.05" value="0.4"><span class="rval">0.4</span></label>
+      <label class="s-row"><span>Floor Reflection</span><input type="range" id="opt-reflect" min="0" max="1" step="0.05" value="0.3"><span class="rval">0.3</span></label>
+      <label class="s-row"><span>FOV</span><input type="range" id="opt-fov" min="30" max="90" step="1" value="50"><span class="rval">50</span></label>
+      <label class="s-row"><span>Orbit Speed</span><input type="range" id="opt-orbit" min="0.02" max="0.5" step="0.02" value="0.15"><span class="rval">0.15</span></label>
+      <label class="s-row check-row"><span>Show Grid</span><input type="checkbox" id="opt-grid" checked></label>
+      <label class="s-row check-row"><span>Show Room Boundary</span><input type="checkbox" id="opt-room" checked></label>
+    </div>
+
+    <!-- Data -->
+    <div class="stab-content" id="tab-data">
+      <label class="s-row"><span>Scenario</span><select id="opt-scenario">
+        <option value="auto">Auto-Cycle (30s)</option>
+        <option value="empty_room">Empty Room</option>
+        <option value="single_breathing">Vital Signs (Breathing)</option>
+        <option value="two_walking">Multi-Person Tracking</option>
+        <option value="fall_event">Fall Detection</option>
+        <option value="sleep_monitoring">Sleep Monitoring (Apnea)</option>
+        <option value="elderly_care">Elderly Care (Gait)</option>
+        <option value="fitness_tracking">Fitness Tracking</option>
+        <option value="intrusion_detect">Intrusion Detection</option>
+        <option value="security_patrol">Security Patrol</option>
+        <option value="crowd_occupancy">Crowd Occupancy (4 ppl)</option>
+        <option value="gesture_control">Gesture Control (DTW)</option>
+        <option value="search_rescue">Search & Rescue (WiFi-Mat)</option>
+      </select></label>
+      <label class="s-row"><span>Cycle Speed (s)</span><input type="range" id="opt-cycle" min="10" max="120" step="5" value="30"><span class="rval">30</span></label>
+      <label class="s-row"><span>Style Preset</span><select id="opt-preset">
+        <option value="custom">Custom</option>
+        <option value="foundation">Foundation (Default)</option>
+        <option value="cinematic">Cinematic</option>
+        <option value="minimal">Minimal / Clean</option>
+        <option value="neon">Neon Glow</option>
+        <option value="tactical">Tactical / Military</option>
+        <option value="medical">Medical Monitor</option>
+      </select></label>
+      <label class="s-row"><span>Data Source</span><select id="opt-data-source">
+        <option value="camera">Camera (Live)</option>
+        <option value="demo">Demo Generator</option>
+      </select></label>
+      <button id="btn-reset-camera" class="s-btn">Reset Camera</button>
+      <button id="btn-reset-settings" class="s-btn">Reset to Defaults</button>
+      <button id="btn-export" class="s-btn">Export Settings</button>
+    </div>
+  </div>
+</div>
+
+<video id="webcam" playsinline style="display:none"></video>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_bundle.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

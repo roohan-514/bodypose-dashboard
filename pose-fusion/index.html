@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BodyPose — Dual-Modal Pose Estimation</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-left">
+      <div class="logo"><span class="pi">&pi;</span> BodyPose</div>
+      <div class="header-title">Dual-Modal Pose Estimation — Live Camera + Simulated Fusion</div>
+    </div>
+    <div class="header-right">
+      <select id="mode-select" class="mode-select">
+        <option value="dual">Dual Mode (Video + Simulated)</option>
+        <option value="video">Video Only</option>
+        <option value="csi">Simulated Only</option>
+      </select>
+      <div class="status-badge">
+        <span id="status-dot" class="status-dot offline"></span>
+        <span id="status-label">READY</span>
+      </div>
+      <span id="fps-display" class="fps-badge">-- FPS</span>
+      <a href="../index.html" class="back-link">&larr; Dashboard</a>
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- Video Panel -->
+    <div class="video-panel">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="skeleton-canvas"></canvas>
+      <div class="video-overlay-label" id="mode-label">DUAL FUSION</div>
+      <div id="camera-prompt" class="camera-prompt">
+        <div class="camera-prompt-label" id="prompt-mode-label">DUAL FUSION</div>
+        <p>Enable your webcam for live video pose estimation.<br>
+           Or switch to <strong>Simulated Only</strong> mode for synthetic data.</p>
+        <button id="start-camera-btn">Enable Camera</button>
+      </div>
+    </div>
+
+    <!-- Side Panels -->
+    <div class="side-panels">
+
+      <!-- Fusion Confidence -->
+      <div class="panel">
+        <div class="panel-title">&#9670; Fusion Confidence</div>
+        <div class="fusion-bars">
+          <div class="bar-row">
+            <span class="bar-label">Video</span>
+            <div class="bar-track"><div class="bar-fill video" id="video-bar" style="width:0%"></div></div>
+            <span class="bar-value" id="video-bar-val">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Simulated</span>
+            <div class="bar-track"><div class="bar-fill csi" id="csi-bar" style="width:0%"></div></div>
+            <span class="bar-value" id="csi-bar-val">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Fused</span>
+            <div class="bar-track"><div class="bar-fill fused" id="fused-bar" style="width:0%"></div></div>
+            <span class="bar-value" id="fused-bar-val">0%</span>
+          </div>
+        </div>
+        <div style="margin-top:8px; font-size:10px; color:#4a7a8a">
+          Cross-modal: <span id="cross-modal-sim" style="color:#00ff88">0.000</span>
+        </div>
+      </div>
+
+      <!-- Signal Heatmap -->
+      <div class="panel">
+        <div class="panel-title">&#9670; Signal Amplitude Heatmap</div>
+        <div class="csi-canvas-wrapper">
+          <canvas id="csi-canvas" width="320" height="100"></canvas>
+        </div>
+      </div>
+
+      <!-- RSSI Signal Strength -->
+      <div class="panel">
+        <div class="panel-title">&#9670; RSSI Signal Strength</div>
+        <div class="rssi-row">
+          <div class="rssi-gauge">
+            <div class="rssi-bar-track">
+              <div class="rssi-bar-fill" id="rssi-bar" style="width:0%"></div>
+            </div>
+            <div class="rssi-values">
+              <span class="rssi-dbm" id="rssi-value">-- dBm</span>
+              <span class="rssi-quality" id="rssi-quality">--</span>
+            </div>
+          </div>
+          <canvas id="rssi-sparkline" width="160" height="32"></canvas>
+        </div>
+      </div>
+
+      <!-- Embedding Space -->
+      <div class="panel">
+        <div class="panel-title">&#9670; Embedding Space (2D Projection)</div>
+        <div class="embedding-canvas-wrapper">
+          <canvas id="embedding-canvas" width="320" height="100"></canvas>
+        </div>
+      </div>
+
+      <!-- Pipeline Latency -->
+      <div class="panel">
+        <div class="panel-title">&#9670; Pipeline Latency</div>
+        <div class="latency-grid">
+          <div class="latency-item"><div class="latency-value" id="lat-video">--</div><div class="latency-label">Video CNN</div></div>
+          <div class="latency-item"><div class="latency-value" id="lat-csi">--</div><div class="latency-label">Signal CNN</div></div>
+          <div class="latency-item"><div class="latency-value" id="lat-fusion">--</div><div class="latency-label">Fusion</div></div>
+          <div class="latency-item"><div class="latency-value" id="lat-total">--</div><div class="latency-label">Total</div></div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="panel">
+        <div class="panel-title">&#9670; Controls</div>
+        <button class="btn" id="pause-btn">&#9208; Pause</button>
+        <div class="slider-row">
+          <label>Confidence Threshold</label>
+          <input type="range" id="confidence-slider" min="0" max="1" step="0.05" value="0.3">
+          <span class="slider-val" id="confidence-value">0.30</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+      <div>
+        BodyPose &middot; Dual-Modal Pose Estimation &middot;
+        Architecture: PoseLandmarker &rarr; Simulated Signal &rarr; Fusion &rarr; 33-Keypoint Pose
+      </div>
+      <div>
+        <a href="https://github.com/roohan-514/bodypose-dashboard">GitHub</a> &middot;
+        <a href="../index.html">Dashboard</a>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_bundle.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
